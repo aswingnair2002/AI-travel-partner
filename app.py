@@ -1,9 +1,14 @@
 import streamlit as st
 
 from services.gemini_service import generate_itinerary
-from prompts.itinerary_prompt import create_prompt
 from services.weather_service import get_weather
+from services.image_service import get_destination_images
+from prompts.itinerary_prompt import create_prompt
 
+
+# ======================
+# PAGE CONFIG
+# ======================
 
 st.set_page_config(
     page_title="AI Travel Planner",
@@ -11,74 +16,165 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("✈️ AI Travel Planner")
 
-destination = st.text_input("Destination")
+st.title("✈️ AI Travel Planner")
+st.write("Plan smart trips with AI and real-time data.")
+
+
+# ======================
+# USER INPUTS
+# ======================
+
+destination = st.text_input(
+    "📍 Destination",
+    placeholder="e.g. Paris, Munnar, Tokyo"
+)
 
 days = st.number_input(
-    "Days",
+    " Number of Days",
     min_value=1,
     max_value=15,
     value=3
 )
 
 budget = st.number_input(
-    "Budget (₹)",
+    " Budget (₹)",
     min_value=1000,
-    value=10000
+    value=10000,
+    step=1000
 )
 
 travel_style = st.selectbox(
-    "Travel Style",
+    " Travel Style",
     [
         "Solo",
         "Family",
         "Friends",
-        "Adventure"
+        "Adventure",
+        "Couple",
+        "Luxury",
+        "Backpacking"
     ]
 )
 
 interests = st.multiselect(
-    "Interests",
+    " Interests",
     [
         "Food",
         "Nature",
         "History",
         "Adventure",
         "Shopping",
-        "Beaches"
+        "Beaches",
+        "Nightlife",
+        "Culture",
+        "Photography"
     ]
 )
 
 
-# Single button only
-if st.button("Generate Plan", key="generate_btn"):
+# ======================
+# GENERATE BUTTON
+# ======================
 
-    with st.spinner("Creating your itinerary..."):
+if st.button("🚀 Generate Plan", key="generate_btn"):
 
-        # Get weather information
-        weather = get_weather(destination)
+    if not destination:
 
-        # Show weather card
-        if weather:
-            st.success(
-                f"🌤 {weather['temperature']}°C | "
-                f"{weather['description']}"
+        st.error("Please enter a destination.")
+
+    else:
+
+        with st.spinner("Generating your AI travel plan..."):
+
+            # ======================
+            # WEATHER
+            # ======================
+
+            weather = get_weather(destination)
+
+            if weather:
+
+                st.success(
+                    f"🌤 {weather['temperature']}°C | "
+                    f"{weather['description'].title()}"
+                )
+
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    st.metric(
+                        "🌡 Temperature",
+                        f"{weather['temperature']}°C"
+                    )
+
+                with col2:
+                    st.metric(
+                        "💧 Humidity",
+                        f"{weather['humidity']}%"
+                    )
+
+                with col3:
+                    st.metric(
+                        "💨 Wind",
+                        f"{weather['wind_speed']} m/s"
+                    )
+
+            else:
+
+                st.warning(
+                    "Could not fetch weather information."
+                )
+
+            # ======================
+            # DESTINATION IMAGES
+            # ======================
+
+            st.subheader("📸 Destination Gallery")
+
+            images = get_destination_images(destination)
+
+            if images:
+
+                cols = st.columns(2)
+
+                for i, image in enumerate(images):
+
+                    with cols[i % 2]:
+
+                        st.image(
+                            image["url"],
+                            caption=f"Photo by {image['photographer']}",
+                            use_container_width=True
+                        )
+
+            else:
+
+                st.info(
+                    "No images found for this destination."
+                )
+
+            # ======================
+            # CREATE AI PROMPT
+            # ======================
+
+            prompt = create_prompt(
+                destination,
+                days,
+                budget,
+                travel_style,
+                interests,
+                weather
             )
-        else:
-            st.warning("Could not fetch weather information.")
 
-        # Create AI prompt
-        prompt = create_prompt(
-            destination,
-            days,
-            budget,
-            travel_style,
-            interests,
-            weather
-        )
+            # ======================
+            # GEMINI RESPONSE
+            # ======================
 
-        # Generate itinerary
-        result = generate_itinerary(prompt)
+            result = generate_itinerary(prompt)
 
-        st.markdown(result)
+            st.divider()
+
+            st.subheader("🗺 Your Personalized Itinerary")
+
+            st.markdown(result)
