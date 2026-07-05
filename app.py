@@ -3,6 +3,7 @@ import streamlit as st
 from services.gemini_service import generate_itinerary
 from services.weather_service import get_weather
 from services.image_service import get_destination_images
+from services.maps_service import get_google_maps_link
 from prompts.itinerary_prompt import create_prompt
 
 
@@ -15,7 +16,6 @@ st.set_page_config(
     page_icon="✈️",
     layout="wide"
 )
-
 
 st.title("✈️ AI Travel Planner")
 st.write("Plan smart trips with AI and real-time data.")
@@ -31,21 +31,21 @@ destination = st.text_input(
 )
 
 days = st.number_input(
-    " Number of Days",
+    "📅 Number of Days",
     min_value=1,
     max_value=15,
     value=3
 )
 
 budget = st.number_input(
-    " Budget (₹)",
+    "💰 Budget (₹)",
     min_value=1000,
     value=10000,
     step=1000
 )
 
 travel_style = st.selectbox(
-    " Travel Style",
+    "🧳 Travel Style",
     [
         "Solo",
         "Family",
@@ -58,7 +58,7 @@ travel_style = st.selectbox(
 )
 
 interests = st.multiselect(
-    " Interests",
+    "🎯 Interests",
     [
         "Food",
         "Nature",
@@ -153,6 +153,41 @@ if st.button("🚀 Generate Plan", key="generate_btn"):
                 st.info(
                     "No images found for this destination."
                 )
+
+            # ======================
+            # PLACES TO VISIT
+            # ======================
+
+            st.subheader("📍 Recommended Places")
+
+            # Temporary demo list
+            # Later, replace this with Google Places API
+            places = [
+                f"Top attraction in {destination}",
+                f"Famous market in {destination}",
+                f"Historic center of {destination}",
+                f"Popular beach in {destination}",
+                f"Local food street in {destination}"
+            ]
+
+            for i, place in enumerate(places):
+
+                maps_url = get_google_maps_link(
+                    place,
+                    destination
+                )
+
+                col1, col2 = st.columns([4, 1])
+
+                with col1:
+                    st.write(f"⭐ **{place}**")
+
+                with col2:
+                    st.link_button(
+                        "🗺 Open",
+                        maps_url,
+                        key=f"map_{i}"
+                    )
 
             # ======================
             # CREATE AI PROMPT
